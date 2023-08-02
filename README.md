@@ -7,7 +7,7 @@
 
 1. Install docker desktop or docker engine from  https://docs.docker.com/engine/install/
 2. Clone this repository and navigate to it in your command line of choice
-3. Edit the .env file and add a secure password instead of MYPASSWORD
+3. Copy the ```.env.template``` file and name the copy ```.env```. Edit this new file to have a secure password instead of MYPASSWORD
 4. Run ```docker-compose up -d``` to start the containers in detached mode
 5. Test endpoints at [https://localhost:8080/{endpoint}](https://localhost:8080/) using method of choice (I used Postman)
 6. Run ```docker-compose stop``` to shut down the containers
