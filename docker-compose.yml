@@ -5,9 +5,15 @@ services:
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: "${DB_PASSWORD}"
+      MYSQL_DATABASE: "${MYSQL_DATABASE}"
   dbproxy:
-    build: ./src
+    build: ./dbproxy
+    command: npm run dev
+    volumes:
+      - ./dbproxy:/usr/app/
+      - /usr/app/node_modules
     ports:
       - 8080:8080
     environment:
-      MYSQL_URL: "jdbc:mysql://localhost:3306/mydb"
+      MYSQL_URL: "jdbc:mysql://localhost:3306/${MYSQL_DATABASE}"
+      DB_PASSWORD: "${DB_PASSWORD}"

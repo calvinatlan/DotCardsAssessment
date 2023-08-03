@@ -1,2 +1,4 @@
 .idea/
 .env
+dbproxy/node_modules
+dbproxy/dist/
