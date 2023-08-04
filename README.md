@@ -39,6 +39,11 @@ Notes: Only "integer" and "string" are supported in the schema.json file for col
     - URL ```/:collection/:id```
     - HTTP Method: GET
 
+```
+    url: http://localhost:8080/person/1
+    method: GET
+```
+
 - **Update**
     - URL ```/:collection/:id```
     - HTTP Method: POST
@@ -57,6 +62,10 @@ Notes: Only "integer" and "string" are supported in the schema.json file for col
 - **Delete**
     - URL ```/:collection/:id```
     - HTTP Method: DELETE
+```
+    url: http://localhost:8080/person/1
+    method: DELETE
+```
 
 ***
 
