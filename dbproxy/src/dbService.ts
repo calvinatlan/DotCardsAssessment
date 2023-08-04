@@ -1,22 +1,25 @@
-import * as path from 'path';
-import * as fs from 'fs';
-import {fileURLToPath} from 'url';
 import mysql from 'mysql';
 import _ from 'lodash';
-import {getColumnTypeQuery, getFieldTypeSchema, sqlColumnToSchema} from './utility.js';
+import {convertTypeMySQL, getFieldTypeSchema, getSchema, convertTypeSchema} from './utility.js';
 
 export class DBService {
     private schema: { tables: {name: string, columns: {name: string, type: string}[] }[] };
     private dbCon: mysql.Connection;
-    readonly connectPromise: Promise<void>;
+    readonly connectedPromise: Promise<void>;
     constructor() {
-        this.connectPromise = new Promise((resolve, reject) => {
+        this.connectedPromise = new Promise<void>(async (resolve, reject) => {
+            await this.tryConnect();
+
             // Import schema
-            const __filename = fileURLToPath(import.meta.url);
-            const __dirname = path.dirname(__filename);
-            const schemaFilePath = path.join(__dirname, '..', '..', 'schema.json');
-            const rawData = fs.readFileSync(schemaFilePath);
-            this.schema = JSON.parse(rawData.toString());
+            this.schema = getSchema();
+            await this.validateSchema();
+
+            resolve();
+        });
+    }
+
+    private tryConnect() {
+        return new Promise<void>((resolve, reject) => {
             // Connect to db
             this.dbCon = mysql.createConnection({
                 host: 'host.docker.internal',
@@ -29,7 +32,6 @@ export class DBService {
                     reject(err);
                 } else {
                     console.log('Database connection established.');
-                    await this.validateSchema();
                     resolve();
                 }
             });
@@ -76,7 +78,7 @@ export class DBService {
     async readColumns(tableName: string): Promise<{name: string, type: string}[]> {
         const query = `SHOW COLUMNS FROM ${tableName}`;
         const columns = await this.query(query);
-        return columns.map(sqlColumnToSchema);
+        return columns.map(convertTypeSchema);
     }
 
     async fixColumns(tableName: string, schemaColumns: {name: string, type: string}[], columns: {name: string, type: string}[]) {
@@ -91,7 +93,7 @@ export class DBService {
     }
 
     async createTable(table: {name: string, columns: {name: string, type: string}[]}) {
-        let columnQuery = table.columns.map(column => `${column.name} ${getColumnTypeQuery(column.type)}`).join(', ');
+        let columnQuery = table.columns.map(column => `${column.name} ${convertTypeMySQL(column.type)}`).join(', ');
         const query = `CREATE TABLE ${table.name} (id INT NOT NULL AUTO_INCREMENT, ${columnQuery}, PRIMARY KEY (id));`;
         await this.query(query);
     }
@@ -102,7 +104,7 @@ export class DBService {
     }
 
     async createColumn(tableName: string, column: {name: string, type: string}) {
-        const query = `ALTER TABLE ${tableName} ADD COLUMN ${column.name} ${getColumnTypeQuery(column.type)};`
+        const query = `ALTER TABLE ${tableName} ADD COLUMN ${column.name} ${convertTypeMySQL(column.type)};`
         await this.query(query);
     }
 
