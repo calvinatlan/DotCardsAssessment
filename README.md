@@ -22,7 +22,7 @@ Notes: Only "integer" and "string" are supported in the schema.json file for col
 - **Create** 
   - URL ```/:collection```
   - HTTP Method: POST 
-  - Example url and body
+  - Example url and body:
 
 ```
     url: http://localhost:8080/person
