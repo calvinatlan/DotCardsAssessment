@@ -1,23 +1,42 @@
 import mysql from 'mysql';
 import _ from 'lodash';
-import {convertTypeMySQL, getFieldTypeSchema, getSchema, convertTypeSchema} from './utility.js';
+import {convertTypeMySQL, delay, getFieldTypeSchema, getSchema, convertTypeSchema, wrapString} from './utility.js';
 
+// Main class for interacting with the database
 export class DBService {
     private schema: { tables: {name: string, columns: {name: string, type: string}[] }[] };
     private dbCon: mysql.Connection;
-    readonly connectedPromise: Promise<void>;
+    readonly serviceReady: Promise<void>;
+    // Constructor makes sure the connection to the database is established, then runs schema validation
     constructor() {
-        this.connectedPromise = new Promise<void>(async (resolve, reject) => {
-            await this.tryConnect();
-
-            // Import schema
-            this.schema = getSchema();
-            await this.validateSchema();
-
-            resolve();
+        this.serviceReady = new Promise<void>(async (resolve, reject) => {
+            let connectionTries = 0;
+            let successfulConnect = false;
+            while (connectionTries < 5) {
+                connectionTries++;
+                try {
+                    await this.tryConnect();
+                    successfulConnect = true;
+                    break;
+                } catch (e) {
+                    if (connectionTries < 5) {
+                        console.error("Could not connect to database, trying again in 10 seconds. Attempt #", connectionTries);
+                        await delay(10000);
+                    }
+                }
+            }
+            if (successfulConnect) {
+                // Import schema
+                this.schema = getSchema();
+                await this.validateSchema();
+                resolve();
+            } else {
+                reject(new Error("Could not connect to MySQL Container"));
+            }
         });
     }
 
+    // Attempt database connection
     private tryConnect() {
         return new Promise<void>((resolve, reject) => {
             // Connect to db
@@ -38,6 +57,7 @@ export class DBService {
         });
     }
 
+    // Compares provided schema.json to current database schema and fixes the latter to match the former
     private async validateSchema() {
         let tableNames = await this.readTableNames();
         tableNames = tableNames.map(rowObject => Object.values(rowObject)[0]);
@@ -63,6 +83,7 @@ export class DBService {
         return this.query(query);
     }
 
+    // Compares schema.json to db for tables and finds the ones to delete and the ones to add
     async fixTables(schemaTableNames: string[], tableNames: string[]) {
         const toRemove = _.difference(tableNames, schemaTableNames);
         for (const name of toRemove) {
@@ -81,6 +102,7 @@ export class DBService {
         return columns.map(convertTypeSchema);
     }
 
+    // Compares schema.json to db for columns in a given table and finds the ones to delete and the ones to add
     async fixColumns(tableName: string, schemaColumns: {name: string, type: string}[], columns: {name: string, type: string}[]) {
         const toRemove = _.differenceWith(columns, schemaColumns, _.isEqual);
         for (const column of toRemove) {
@@ -120,7 +142,7 @@ export class DBService {
             this.dbCon.query(query, (err, result) => {
                 console.log('Executing query:', query);
                 if (err) {
-                    console.log('Query failed');
+                    console.error('Query failed');
                     reject(err);
                 } else {
                     console.log('Query succeeded');
@@ -135,20 +157,28 @@ export class DBService {
     async create(tableName: string, entry: object) {
         const columns = [];
         const values = [];
-        console.log(typeof entry);
-        console.log(entry);
+        let error: string = null;
         Object.keys(entry).forEach(colName => {
             columns.push(colName);
             let value = entry[colName];
-            if (getFieldTypeSchema(this.schema, tableName, colName) === 'string')
-                value = '"' + value + '"';
-            values.push(value);
+            try {
+                if (getFieldTypeSchema(this.schema, tableName, colName) === 'string')
+                    value = wrapString(value);
+                values.push(value);
+            } catch (e) {
+                error = `Invalid name or type for column: ${colName}`;
+            }
         });
+        if (error) return error;
         const query = `INSERT INTO ${tableName} (${columns.join(',')}) VALUES (${values.join(',')});`;
         try {
-            return await this.query(query);
+            const response = await this.query(query);
+            return {
+                "message": "Successful creation",
+                "insertId": response.insertId
+            };
         } catch (e) {
-            return e;
+            return "Could not create";
         }
     }
 
@@ -157,32 +187,45 @@ export class DBService {
         try {
             return await this.query(query);
         } catch (e) {
-            return e;
+            return "Could not read";
         }
     }
 
     async update(tableName: string, id: string, entry: object) {
+        let error = null;
         const valueQuery = Object.keys(entry).map(colName => {
             let value = entry[colName];
-            const isString = getFieldTypeSchema(this.schema, tableName, colName) === 'string';
-            if (isString)
-                value = '"' + value + '"';
-            return `${colName} = ${value}`
+            try {
+                const isString = getFieldTypeSchema(this.schema, tableName, colName) === 'string';
+                if (isString)
+                    value = wrapString(value);
+                return `${colName} = ${value}`
+            } catch (e) {
+                error = `Invalid name or type for column: ${colName}`;
+            }
         }).join(', ');
+        if (error)
+            return error;
         const query = `UPDATE ${tableName} SET ${valueQuery} WHERE id = ${id};`;
         try {
-            return await this.query(query);
+            const response = await this.query(query);
+            return {
+                "message": "Successful update"
+            };
         } catch (e) {
-            return e;
+            return "Could not update";
         }
     }
 
     async delete(tableName: string, id: string) {
         const query = `DELETE FROM ${tableName} WHERE id = ${id}`;
         try {
-            return await this.query(query);
+            await this.query(query);
+            return {
+                "message": "Successful deletion"
+            };
         } catch (e) {
-            return e;
+            return "Could not delete";
         }
     }
 

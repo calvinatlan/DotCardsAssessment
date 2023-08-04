@@ -12,7 +12,7 @@ const dbService = new DBService();
 
 // Await db connection before starting server
 try {
-    await dbService.connectedPromise;
+    await dbService.serviceReady;
 
     app.get('/:test', (req, res) => {
         res.send(req.params);
@@ -36,5 +36,5 @@ try {
         console.log('Listening on port', port);
     });
 } catch (e) {
-    console.log(e);
+    console.error(e);
 }

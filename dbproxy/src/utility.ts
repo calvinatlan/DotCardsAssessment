@@ -15,6 +15,11 @@ export function setupEnvVar() {
     dotenv.config({path: path.join(__dirname, '..', '..', '.env')});
 }
 
+// Sleep method
+export function delay(ms: number) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 // Fetch schema object from json file
 export function getSchema() {
     const __dirname = getDirName();
@@ -49,4 +54,9 @@ export function convertTypeSchema(column: {Field: string, Type: string}) {
 // Filter out schema by table name then by column name to find the type
 export function getFieldTypeSchema(schema: {tables: {name: string, columns: {name: string, type: string}[]}[]}, tableName: string, fieldName: string) {
     return schema.tables.filter(table => table.name === tableName)[0].columns.filter(col => col.name === fieldName)[0].type;
+}
+
+// Wrap string in quotes
+export function wrapString(input: string) {
+    return '"' + input + '"';
 }

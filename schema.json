@@ -12,8 +12,21 @@
           "type": "integer"
         },
         {
-          "name": "Country",
-          "type": "integer"
+          "name": "country",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "product",
+      "columns": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "company",
+          "type": "string"
         }
       ]
     }

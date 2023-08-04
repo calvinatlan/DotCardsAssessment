@@ -6,20 +6,55 @@
 ## How to Run
 
 1. Install docker desktop or docker engine from  https://docs.docker.com/engine/install/
-2. Clone this repository and navigate to it in your command line of choice
+2. Clone this repository and navigate to its root folder in your command line of choice
 3. Copy the ```.env.template``` file and name the copy ```.env```. Edit this new file to have a secure password instead of ```MYPASSWORD```
-4. Run ```docker-compose up -d``` to start the containers in detached mode
+4. Run ```docker-compose up``` to start the containers and monitor output
 5. Test endpoints at [https://localhost:8080/{endpoint}](https://localhost:8080/) using method of choice (I used Postman)
-6. Run ```docker-compose stop``` to shut down the containers
+6. Press ctrl+c to shut down containers
+7. Change ```schema.json``` and re-run ```docker-compose up``` to test the schema parsing
+
+Notes: Only "integer" and "string" are supported in the schema.json file for column types
 
 ***
 
 ## Endpoints
 
-- POST /:collection
-- GET /:collection/:id
-- POST /:collection/:id
-- DELETE /:collection/:id
+- **Create** 
+  - URL ```/:collection```
+  - HTTP Method: POST 
+  - Example url and body
+
+
+    url: http://localhost:8080/person
+    method: POST
+    body :
+    {
+        "name": "Calvin",
+        "age": 30,
+        "country": "France"
+    }
+
+- **Read**
+    - URL ```/:collection/:id```
+    - HTTP Method: GET
+
+- **Update**
+    - URL ```/:collection/:id```
+    - HTTP Method: POST
+    - Example url and body:
+
+
+    url: http://localhost:8080/person/1
+    method: POST
+    body :
+    {
+        "name": "Sam",
+        "age": 34
+    }
+
+- **Delete**
+    - URL ```/:collection/:id```
+    - HTTP Method: DELETE
 
 ***
 
@@ -27,16 +62,10 @@
 
 - Clean up typing
 - Use an ORM
+- Add logging
 - Add support for more data types in the database schema parsing
-- Make input validation more robust
-- Use proper exception handling instead of catching every error and spitting it out as the response (Dangerous, would never do this)
-- Docker compose guarantees that the db container has started before the node app's container starts
-but this does not guarantee the db is ready for connection. I would perform some sort of health check 
+- Better input validation
+- More robust error handling (currently some of the errors are not very helpful)
+- I use a naive timeout if database is not ready before app container. It would be better to perform some sort of health check 
 to guarantee the db is fully ready before starting the node app.
-
-***
-
-### Notes
-
-- The mysql image uses ```mysql_native_password``` for the ```default-authentication-plugin``` argument,
-which is not recommended for production environments.
+- Different authentication method (currently using unsafe ```mysql_native_password```)
