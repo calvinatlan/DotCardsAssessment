@@ -97,7 +97,7 @@ export class DBService {
     }
 
     async readColumns(tableName: string): Promise<{name: string, type: string}[]> {
-        const query = `SHOW COLUMNS FROM ${tableName}`;
+        const query = `SHOW COLUMNS FROM ${tableName};`;
         const columns = await this.query(query);
         return columns.map(convertTypeSchema);
     }
@@ -218,7 +218,7 @@ export class DBService {
     }
 
     async delete(tableName: string, id: string) {
-        const query = `DELETE FROM ${tableName} WHERE id = ${id}`;
+        const query = `DELETE FROM ${tableName} WHERE id = ${id};`;
         try {
             await this.query(query);
             return {
