@@ -26,7 +26,6 @@ export class DBService {
                 }
             }
             if (successfulConnect) {
-                // Import schema
                 this.schema = getSchema();
                 await this.validateSchema();
                 resolve();
@@ -39,7 +38,6 @@ export class DBService {
     // Attempt database connection
     private tryConnect() {
         return new Promise<void>((resolve, reject) => {
-            // Connect to db
             this.dbCon = mysql.createConnection({
                 host: 'host.docker.internal',
                 user: 'root',
