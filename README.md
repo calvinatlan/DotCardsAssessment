@@ -8,10 +8,10 @@
 1. Install docker and docker compose
 2. Clone this repository and navigate to its root folder in your command line of choice
 3. Copy the ```.env.template``` file and name the copy ```.env```. Edit this new file to have a secure password instead of ```MYPASSWORD```
-4. Run ```docker-compose up``` to start the containers and monitor output
+4. Run ```docker compose up``` to start the containers and monitor output
 5. Test endpoints at [https://localhost:8080/{endpoint}](https://localhost:8080/) using method of choice (I used Postman)
 6. Press ctrl+c to shut down containers
-7. Change ```schema.json``` and re-run ```docker-compose up``` to test the schema parsing
+7. Change ```schema.json``` and re-run ```docker compose up``` to test the schema parsing
 
 Notes: Only "integer" and "string" are supported in the schema.json file for column types
 
