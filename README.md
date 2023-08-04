@@ -5,7 +5,7 @@
 
 ## How to Run
 
-1. Install docker desktop or docker engine from  https://docs.docker.com/engine/install/
+1. Install docker and docker compose
 2. Clone this repository and navigate to its root folder in your command line of choice
 3. Copy the ```.env.template``` file and name the copy ```.env```. Edit this new file to have a secure password instead of ```MYPASSWORD```
 4. Run ```docker-compose up``` to start the containers and monitor output
