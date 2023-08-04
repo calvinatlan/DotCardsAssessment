@@ -24,7 +24,7 @@ Notes: Only "integer" and "string" are supported in the schema.json file for col
   - HTTP Method: POST 
   - Example url and body
 
-
+```
     url: http://localhost:8080/person
     method: POST
     body :
@@ -33,6 +33,7 @@ Notes: Only "integer" and "string" are supported in the schema.json file for col
         "age": 30,
         "country": "France"
     }
+```
 
 - **Read**
     - URL ```/:collection/:id```
@@ -43,7 +44,7 @@ Notes: Only "integer" and "string" are supported in the schema.json file for col
     - HTTP Method: POST
     - Example url and body:
 
-
+```
     url: http://localhost:8080/person/1
     method: POST
     body :
@@ -51,6 +52,7 @@ Notes: Only "integer" and "string" are supported in the schema.json file for col
         "name": "Sam",
         "age": 34
     }
+```
 
 - **Delete**
     - URL ```/:collection/:id```
