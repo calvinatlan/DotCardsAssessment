@@ -4,21 +4,15 @@
       "name": "person",
       "columns": [
         {
-          "name": "id",
+          "name": "name",
           "type": "string"
         },
         {
-          "name": "name",
-          "type": "string"
-        }
-      ],
-      "primaryKey": "id"
-    },
-    {
-      "name": "product",
-      "columns": [
+          "name": "age",
+          "type": "integer"
+        },
         {
-          "name": "id",
+          "name": "Country",
           "type": "integer"
         }
       ]

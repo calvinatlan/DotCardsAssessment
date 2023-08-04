@@ -3,10 +3,10 @@ import * as fs from 'fs';
 import {fileURLToPath} from 'url';
 import mysql from 'mysql';
 import _ from 'lodash';
-import {getColumnTypeQuery} from './utility.js';
+import {getColumnTypeQuery, getFieldTypeSchema, sqlColumnToSchema} from './utility.js';
 
 export class DBService {
-    private schema: { tables: {name: string, columns: {name: string, type: string}[], primaryKey: string}[] };
+    private schema: { tables: {name: string, columns: {name: string, type: string}[] }[] };
     private dbCon: mysql.Connection;
     readonly connectPromise: Promise<void>;
     constructor() {
@@ -35,6 +35,7 @@ export class DBService {
             });
         });
     }
+
     private async validateSchema() {
         let tableNames = await this.readTableNames();
         tableNames = tableNames.map(rowObject => Object.values(rowObject)[0]);
@@ -44,15 +45,17 @@ export class DBService {
         // Not using forEach because it doesn't play nice with async/await
         for (const table of this.schema.tables) {
             const columns = await this.readColumns(table.name);
-            const schemaColumns = table.columns;
+            let schemaColumns = table.columns;
+            schemaColumns = [
+                ...schemaColumns,
+                {name: 'id', type: 'integer'}
+            ]
             if (!_.isEqual(columns, schemaColumns)) {
-                const keyQuery = `SHOW KEYS FROM ${table.name} WHERE Key_name = 'PRIMARY';`
-                const keyResult = await this.query(keyQuery);
-                const oldPrimaryKey = keyResult[0] ? keyResult[0]['Column_name'] : null;
-                await this.fixColumns(table.name, oldPrimaryKey, table.primaryKey, schemaColumns, columns);
+                await this.fixColumns(table.name, schemaColumns, columns);
             }
         }
     }
+
     async readTableNames(): Promise<string[]> {
         const query = 'SHOW TABLES;';
         return this.query(query);
@@ -69,41 +72,27 @@ export class DBService {
             await this.createTable(table);
         }
     }
+
     async readColumns(tableName: string): Promise<{name: string, type: string}[]> {
-        const sqlColumnToSchema = (column: {Field: string, Type: string}) => {
-            let colType: string;
-            switch(true) {
-                case /int/.test(column.Type): colType = 'integer'; break;
-                case /varchar/.test(column.Type): colType = 'string'; break;
-                default: colType = 'string'; break;
-            }
-            return {
-                'name': column.Field,
-                'type': colType
-            }
-        }
         const query = `SHOW COLUMNS FROM ${tableName}`;
         const columns = await this.query(query);
         return columns.map(sqlColumnToSchema);
     }
 
-    async fixColumns(tableName: string, oldPrimaryKey: string, newPrimaryKey: string, schemaColumns: {name: string, type: string}[], columns: {name: string, type: string}[]) {
+    async fixColumns(tableName: string, schemaColumns: {name: string, type: string}[], columns: {name: string, type: string}[]) {
         const toRemove = _.differenceWith(columns, schemaColumns, _.isEqual);
         for (const column of toRemove) {
-            await this.dropColumn(tableName, column, oldPrimaryKey)
+            await this.dropColumn(tableName, column)
         }
         const toAdd = _.differenceWith(schemaColumns, columns, _.isEqual);
         for (const column of toAdd) {
-            await this.createColumn(tableName, column, newPrimaryKey === column.name);
+            await this.createColumn(tableName, column);
         }
     }
 
-    async createTable(table: {name: string, columns: {name: string, type: string}[], primaryKey: string}) {
+    async createTable(table: {name: string, columns: {name: string, type: string}[]}) {
         let columnQuery = table.columns.map(column => `${column.name} ${getColumnTypeQuery(column.type)}`).join(', ');
-        if (table.primaryKey) {
-            columnQuery += `, PRIMARY KEY (${table.primaryKey})`;
-        }
-        const query = `CREATE TABLE ${table.name} (${columnQuery});`;
+        const query = `CREATE TABLE ${table.name} (id INT NOT NULL AUTO_INCREMENT, ${columnQuery}, PRIMARY KEY (id));`;
         await this.query(query);
     }
 
@@ -112,23 +101,17 @@ export class DBService {
         await this.query(query);
     }
 
-    async createColumn(tableName: string, column: {name: string, type: string}, isPrimaryKey: boolean) {
+    async createColumn(tableName: string, column: {name: string, type: string}) {
         const query = `ALTER TABLE ${tableName} ADD COLUMN ${column.name} ${getColumnTypeQuery(column.type)};`
         await this.query(query);
-        if (isPrimaryKey) {
-            const keyQuery = `ALTER TABLE ${tableName} ADD PRIMARY KEY (${column.name});`;
-            await this.query(keyQuery);
-        }
     }
 
-    async dropColumn(tableName: string, column: {name: string}, primaryKey: string) {
-        if (primaryKey && column.name === primaryKey) {
-            const keyQuery = `ALTER TABLE ${tableName} DROP PRIMARY KEY`;
-            await this.query(keyQuery);
-        }
+    async dropColumn(tableName: string, column: {name: string}) {
         const query = `ALTER TABLE ${tableName} DROP COLUMN ${column.name};`;
         await this.query(query);
     }
+
+    // ----Query Helper ---- //
 
     async query(query: string): Promise<any> {
         return new Promise<any>((resolve, reject) => {
@@ -144,4 +127,61 @@ export class DBService {
             });
         });
     }
+
+    // ----Route Handlers---- //
+
+    async create(tableName: string, entry: object) {
+        const columns = [];
+        const values = [];
+        console.log(typeof entry);
+        console.log(entry);
+        Object.keys(entry).forEach(colName => {
+            columns.push(colName);
+            let value = entry[colName];
+            if (getFieldTypeSchema(this.schema, tableName, colName) === 'string')
+                value = '"' + value + '"';
+            values.push(value);
+        });
+        const query = `INSERT INTO ${tableName} (${columns.join(',')}) VALUES (${values.join(',')});`;
+        try {
+            return await this.query(query);
+        } catch (e) {
+            return e;
+        }
+    }
+
+    async read(tableName: string, id: string) {
+        const query = `SELECT * FROM ${tableName} WHERE id = ${id} LIMIT 1;`;
+        try {
+            return await this.query(query);
+        } catch (e) {
+            return e;
+        }
+    }
+
+    async update(tableName: string, id: string, entry: object) {
+        const valueQuery = Object.keys(entry).map(colName => {
+            let value = entry[colName];
+            const isString = getFieldTypeSchema(this.schema, tableName, colName) === 'string';
+            if (isString)
+                value = '"' + value + '"';
+            return `${colName} = ${value}`
+        }).join(', ');
+        const query = `UPDATE ${tableName} SET ${valueQuery} WHERE id = ${id};`;
+        try {
+            return await this.query(query);
+        } catch (e) {
+            return e;
+        }
+    }
+
+    async delete(tableName: string, id: string) {
+        const query = `DELETE FROM ${tableName} WHERE id = ${id}`;
+        try {
+            return await this.query(query);
+        } catch (e) {
+            return e;
+        }
+    }
+
 }

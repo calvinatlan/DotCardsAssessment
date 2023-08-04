@@ -10,20 +10,37 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 dotenv.config({path: path.join(__dirname, '..', '..', '.env')});
 
-// Set up express
 const app = express();
-const port = Number(process.env.DBPROXY_PORT);
+app.use(express.json());
 const server = http.createServer(app);
 
 const dbService = new DBService();
 
-// Await connection before starting server
+// Await db connection before starting server
 try {
     await dbService.connectPromise;
     app.get('/', (req, res) => {
         res.send('Hello World!');
     });
 
+    app.get('/:test', (req, res) => {
+        res.send(req.params);
+    });
+
+    app.post('/:collection', async (req, res) => {
+        res.send(await dbService.create(req.params.collection, req.body));
+    });
+    app.get('/:collection/:id', async (req, res) => {
+        res.send(await dbService.read(req.params.collection, req.params.id));
+    });
+    app.post('/:collection/:id', async (req, res) => {
+        res.send(await dbService.update(req.params.collection, req.params.id, req.body));
+    });
+    app.delete('/:collection/:id', async (req, res) => {
+        res.send(await dbService.delete(req.params.collection, req.params.id));
+    });
+
+    const port = Number(process.env.DBPROXY_PORT);
     server.listen(port, () => {
         console.log('Listening on port', port);
     });

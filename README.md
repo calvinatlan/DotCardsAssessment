@@ -28,7 +28,8 @@
 - Clean up typing
 - Use an ORM
 - Add support for more data types in the database schema parsing
-- Use proper exception handling instead of catching every error
+- Make input validation more robust
+- Use proper exception handling instead of catching every error and spitting it out as the response (Dangerous, would never do this)
 - Docker compose guarantees that the db container has started before the node app's container starts
 but this does not guarantee the db is ready for connection. I would perform some sort of health check 
 to guarantee the db is fully ready before starting the node app.
