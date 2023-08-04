@@ -6,14 +6,20 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: "${DB_PASSWORD}"
       MYSQL_DATABASE: "${MYSQL_DATABASE}"
-  dbproxy:
-    build: ./dbproxy
-    command: npm run dev
-    volumes:
-      - ./dbproxy:/usr/app/
-      - /usr/app/node_modules
     ports:
-      - 8080:8080
+      - 3306:3306
+  dbproxy:
+    build:
+      context: ./
+      dockerfile: ./dbproxy/Dockerfile
+    command: npm run dev
+    depends_on:
+      - db
+    volumes:
+      - .:/usr/app/
+      - /usr/app/dbproxy/node_modules
+    ports:
+      - ${DBPROXY_PORT}:${DBPROXY_PORT}
     environment:
       MYSQL_URL: "jdbc:mysql://localhost:3306/${MYSQL_DATABASE}"
       DB_PASSWORD: "${DB_PASSWORD}"

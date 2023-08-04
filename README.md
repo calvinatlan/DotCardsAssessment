@@ -23,6 +23,18 @@
 
 ***
 
+### Ways I would improve this
+
+- Clean up typing
+- Use an ORM
+- Add support for more data types in the database schema parsing
+- Use proper exception handling instead of catching every error
+- Docker compose guarantees that the db container has started before the node app's container starts
+but this does not guarantee the db is ready for connection. I would perform some sort of health check 
+to guarantee the db is fully ready before starting the node app.
+
+***
+
 ### Notes
 
 - The mysql image uses ```mysql_native_password``` for the ```default-authentication-plugin``` argument,

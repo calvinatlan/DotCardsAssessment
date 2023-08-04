@@ -1,0 +1,27 @@
+{
+  "tables": [
+    {
+      "name": "person",
+      "columns": [
+        {
+          "name": "id",
+          "type": "string"
+        },
+        {
+          "name": "name",
+          "type": "string"
+        }
+      ],
+      "primaryKey": "id"
+    },
+    {
+      "name": "product",
+      "columns": [
+        {
+          "name": "id",
+          "type": "integer"
+        }
+      ]
+    }
+  ]
+}
